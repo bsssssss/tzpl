@@ -65,6 +65,7 @@
 (var_declaration name: (identifier) @variable)
 (const_declaration name: (identifier) @constant)
 (parameter name: (identifier) @variable.parameter)
+(primary_expression (identifier) @variable)
 
 ; Fields
 (field_expression field: (identifier) @property)
@@ -95,10 +96,13 @@
 
 ; Operators
 (automap_operator) @operator
+(binary_expression operator: _ @operator) 
+(unary_expression operator: _ @operator) 
 
 ; Delimiters
+(generic_type ["<" ">"] @punctuation.bracket)
 ["(" ")" "[" "]" "{" "}"] @punctuation.bracket
-["," ";" ":" "."] @punctuation.delimiter
+["," ";" ":" "." "*"] @punctuation.delimiter
 ["?" "="] @operator
 
 ; Import paths
