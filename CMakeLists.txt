@@ -24,6 +24,8 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # The whole tree requires Clang on every platform: the engine and generated
 # plugins use Clang's ext_vector_type swizzle syntax, and the lang VM relies
 # on [[clang::musttail]]. Fail at configure time rather than mid-build.
