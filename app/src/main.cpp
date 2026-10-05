@@ -402,6 +402,63 @@ static void runREPL(VM& vm, Compiler& compiler, const VMTarget& target,
     }
 }
 
+static void runStdio(NRTVM& nrtvm, Compiler& compiler, const VMTarget& target, 
+                     std::vector<std::string> includePaths) {
+    REPLSession session(compiler, nrtvm.vm, target, std::move(includePaths));
+    std::string cell, line;
+
+    auto evalCell = [&] {
+        if (cell.find_first_not_of(" \t\n") == std::string::npos)
+            { cell.clear(); return; }
+
+        // Same discipline as the app's cell evals: hold the
+        // VM mutex so scheduler-thread callbacks serialize.
+        std::lock_guard<std::mutex> lk(nrtvm.mtx);
+
+        auto result = session.eval(cell);
+        if (!result.errors.empty()) {
+            printErrors(result.errors, cell, "<cell>");
+        } else if (result.hasValue) {
+            std::printf("-> %s : %s\n",
+                        result.prettyValue.c_str(),
+                        result.typeName.c_str());
+        } else {
+            std::println("-> ok");
+        }
+
+        std::fflush(stdout);
+        cell.clear();
+        nrtvm.vm.gcHeartbeat();
+    };
+
+    while (std::getline(std::cin, line)) {
+        if (line == "%%") {
+            evalCell(); 
+        }
+        else {
+            cell += line;
+            cell += '\n';
+        }
+    }
+
+    evalCell();
+}
+
+// communicate with external editor with json messages over stdio
+static void runExternalEditor(NRTVM& nrtvm, Compiler& compiler, const VMTarget& target, 
+                     std::vector<std::string> includePaths) {
+
+    REPLSession session(compiler, nrtvm.vm, target, std::move(includePaths));
+    std::string line;
+
+    // send handshake
+
+    // parse handshake_reply
+    
+    // getline -> parse -> reply
+}
+
+
 // ---------------------------------------------------------------------------
 // Audio engine setup
 // ---------------------------------------------------------------------------
@@ -528,6 +585,7 @@ static void printHelp() {
 #if TZPL_HAS_GUI
         "  --nogui                 Run in headless mode (no GUI window)\n"
 #endif
+        "  --stdio                 Run in stdio mode\n"
         "  -P, --project <dir>     Set project directory\n"
         "  -I <path>               Add module include path (colon-separated)\n"
         "  --no-audio              Don't start audio output\n"
@@ -623,6 +681,7 @@ int main(int argc, const char* argv[]) {
         double nrtTailSeconds = 1.0;       // tail rendered after stop signal
         double nrtSafetyCapSeconds = 3600; // upper bound when no --duration
 
+        bool stdioMode = false;
 #if TZPL_HAS_GUI
         bool guiMode = true;
 #else
@@ -646,6 +705,8 @@ int main(int argc, const char* argv[]) {
                 return 0;
             } else if (arg == "--nogui") {
                 guiMode = false;
+            } else if (arg == "--stdio") {
+                stdioMode = true;
             } else if ((arg == "--project" || arg == "-P") && i + 1 < argc) {
                 config.projectDir = argv[++i];
             } else if (arg == "-I" && i + 1 < argc) {
@@ -1124,6 +1185,13 @@ int main(int argc, const char* argv[]) {
                     replPaths.insert(replPaths.end(), systemPaths.begin(),
                                      systemPaths.end());
                     runREPL(nrtvm.vm, compiler, target, std::move(replPaths));
+                } else if (stdioMode && stayAlive) {
+                    // stdio mode: a bare repl session. listen to stdin, 
+                    // evaluates chunks separated by '%%' lines
+                    std::vector<std::string> replPaths(includePaths);
+                    replPaths.insert(replPaths.end(), systemPaths.begin(), systemPaths.end());
+                    // runStdio(nrtvm, compiler, target, std::move(replPaths));
+                     runExternalEditor(nrtvm, compiler, target, std::move(replPaths));
                 } else if (stayAlive) {
                     // Non-interactive with --wait or listeners active: keep
                     // the process (and so the tempo scheduler and any

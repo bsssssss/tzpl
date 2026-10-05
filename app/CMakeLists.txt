@@ -240,6 +240,16 @@ if(TZPL_BUILD_GUI)
     )
 endif()
 
+# --- jsonl parser tests ---
+
+add_executable(tzpl_jsonl_tests
+    tests/jsonl_test.cpp
+    src/jsonl.cpp
+)
+
+target_include_directories(tzpl_jsonl_tests PRIVATE src)
+target_link_libraries(tzpl_jsonl_tests PRIVATE tzpl_lib)
+
 # --- install targets ---
 
 include(GNUInstallDirs)
