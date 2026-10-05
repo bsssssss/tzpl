@@ -21,11 +21,10 @@ elseif(UNIX AND NOT APPLE)
     # Optional backends, compiled in when the dev packages are present.
     # The engine opens RtAudio with UNSPECIFIED on Linux, which picks the
     # first compiled-in API that reports devices (JACK, then Pulse, then ALSA).
-    pkg_check_modules(JACK jack)
+    pkg_check_modules(JACK IMPORTED_TARGET jack)
     if(JACK_FOUND)
         target_compile_definitions(rtaudio PUBLIC __UNIX_JACK__)
-        target_include_directories(rtaudio PUBLIC ${JACK_INCLUDE_DIRS})
-        target_link_libraries(rtaudio PUBLIC ${JACK_LIBRARIES})
+        target_link_libraries(rtaudio PUBLIC PkgConfig::JACK)
     endif()
     pkg_check_modules(PULSE libpulse-simple)
     if(PULSE_FOUND)
